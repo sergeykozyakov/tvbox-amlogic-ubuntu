@@ -13,17 +13,19 @@ Place all sh-install files (`install` directory) to your home directory.
 ## Project structure
 
 ```
-├── install/                     # directory for tv-box installation
-│   ├── system-setup.sh          # run this script for installation (non-root user in graphic mode ONLY!!!)
-│   ├── rathole-client-watch.sh  # SSH/RDP port-forwarding healthcheck/restart script (used by service)
-│   └── happ-upgrade.sh          # xray server (gateway) 2-weekly auto upgrades (used by crontab)
-├── proxy-dns/                   # directory for SOCKS5 + DNS over TLS installation (see README.MD inside)
-│   ├── vpn-routing-start.sh     # start proxy routing shell-script (used by service)
-│   └── vpn-routing-stop.sh      # stop proxy routing shell-script (used by service)
-├── server/                      # (optional) SSH/RDP port-forwarding server settings (copy files as located)
-└── utils/                       # directory for tv-box every-day helpers
-    ├── restart-session.sh       # use it for RDP mode restore after hang-ups and for xray server restart
-    └── show-upgraded-conf.sh    # show Unattended-Upgrades config files conflict list
+├── install/                         # directory for tv-box installation
+│   ├── system-setup.sh              # run this script for installation (non-root user in graphic mode ONLY!!!)
+│   ├── rathole-client-watch.sh      # SSH/RDP port-forwarding healthcheck/restart script (used by service)
+│   └── happ-upgrade.sh              # xray server (gateway) 2-weekly auto upgrades (used by crontab)
+├── proxy-dns/                       # directory for SOCKS5 + DNS over TLS installation (see README.MD inside)
+│   ├── vpn-routing-start.sh         # start proxy routing shell-script (used by service)
+│   └── vpn-routing-stop.sh          # stop proxy routing shell-script (used by service)
+├── server/                          # (optional) SSH/RDP port-forwarding server settings (copy files as located)
+└── utils/                           # directory for tv-box every-day helpers
+    ├── enable-gpu-acceleration.sh   # launch it once to force GPU acceleration for desktop and browser
+    ├── disable-gpu-acceleration.sh  # launch it once to disable GPU acceleration to fix possible problems
+    ├── restart-session.sh           # use it for RDP mode restore after hang-ups and for xray server restart
+    └── show-upgraded-conf.sh        # show Unattended-Upgrades config files conflict list
 ```
 
 ## Unattended-Upgrades sendmail settings
