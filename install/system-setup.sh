@@ -27,7 +27,7 @@ DEF_RATHOLE_HOST="10.10.10.10"
 DEF_RATHOLE_PORT="23200"
 DEF_RATHOLE_TOKEN="MySecretToken"
 
-# Перехват ошибок скриптв
+# Перехват ошибок скрипта
 trap '
 echo "ОШИБКА! Произошла аварийная остановка скрипта настройки системы"
 exit 1
@@ -44,7 +44,7 @@ generate_uuid() {
 
 ###################################################################################################
 
-if [[ "$USER" == "root" ]]; then
+if [[ "$EUID" -eq 0 ]] && [[ -z "$SUDO_USER" ]]; then
     echo "ОШИБКА! Этот скрипт не может выполняться напрямую от пользователя root"
     echo "Запустите скрипт от имени обычного пользователя или с утилитой sudo"
     exit 1
@@ -56,7 +56,9 @@ if [[ ! -f "$STAGE_FILE" ]]; then
         echo "Утилита sudo отсутствует в системе! Выполняется установка утилиты от имени пользователя root..."
         echo ""
 
-        if su -c "apt-get update && apt-get install sudo -y && usermod -aG sudo $USER"; then
+        CURRENT_USER="$USER"
+
+        if su -c "apt-get update && apt-get install sudo -y && usermod -aG sudo $CURRENT_USER"; then
             echo ""
             echo "Утилита sudo успешно установлена!"
 
@@ -96,7 +98,7 @@ if [[ ! -f "$STAGE_FILE" ]]; then
 
     if [[ -f "$GDM_CONFIG_FILE" ]]; then
         if grep -v "^[[:space:]]*#" "$GDM_CONFIG_FILE" | grep -E -q "^[[:space:]]*AutomaticLoginEnable[[:space:]]*=[[:space:]]*true" && \
-           grep -v "^[[:space:]]*#" "$GDM_CONFIG_FILE" | grep -E -q "^[[:space:]]*AutomaticLogin[[:space:]]*=[[:space:]]*$USER"; then
+           grep -v "^[[:space:]]*#" "$GDM_CONFIG_FILE" | grep -E -q "^[[:space:]]*AutomaticLogin[[:space:]]*=[[:space:]]*${SUDO_USER:-$USER}"; then
             echo "Автовход в систему от имени текущего пользователя уже настроен!"
         else
             if ! grep -q "^[[:space:]]*\[daemon\]" "$GDM_CONFIG_FILE"; then
@@ -108,7 +110,7 @@ if [[ ! -f "$STAGE_FILE" ]]; then
             fi
 
             if grep -E -q "^[[:space:]]*#\?[[:space:]]*AutomaticLogin[[:space:]]*=" "$GDM_CONFIG_FILE"; then
-                sed -i -E "s/^#?\s*AutomaticLogin\s*=\s*.*/AutomaticLogin = $USER/" "$GDM_CONFIG_FILE"
+                sed -i -E "s/^#?\s*AutomaticLogin\s*=\s*.*/AutomaticLogin = ${SUDO_USER:-$USER}/" "$GDM_CONFIG_FILE"
             fi
 
             if ! grep -E -q "^[[:space:]]*#\?[[:space:]]*AutomaticLoginEnable" "$GDM_CONFIG_FILE"; then
@@ -116,7 +118,7 @@ if [[ ! -f "$STAGE_FILE" ]]; then
             fi
 
             if ! grep -E -q "^[[:space:]]*#\?[[:space:]]*AutomaticLogin[[:space:]]*=" "$GDM_CONFIG_FILE"; then
-                sed -i "/^[[:space:]]*AutomaticLoginEnable/a AutomaticLogin = $USER" "$GDM_CONFIG_FILE"
+                sed -i "/^[[:space:]]*AutomaticLoginEnable/a AutomaticLogin = ${SUDO_USER:-$USER}" "$GDM_CONFIG_FILE"
             fi
         fi
     else
@@ -240,7 +242,7 @@ if [[ ! -f "$STAGE_FILE" ]]; then
         timedatectl set-timezone "$TIMEZONE"
     fi
 
-    USER_RUN="sudo -u $USER DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u $USER)/bus"
+    USER_RUN="sudo -u ${SUDO_USER:-$USER} DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u ${SUDO_USER:-$USER})/bus"
 
     echo  "Установка русской раскладки клавиатуры..."
 
@@ -990,7 +992,7 @@ EOF
             read -p "Нажмите [Enter] для продолжения..."
 
             if type -p gnome-control-center >/dev/null; then
-                sudo -u "$USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u $USER)/bus" \
+                sudo -u "${SUDO_USER:-$USER}" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u ${SUDO_USER:-$USER})/bus" \
                 gnome-control-center system remote-desktop >/dev/null 2>&1 &
 
                 read -p "Когда полностью завершите настройку удаленного рабочего стола в графическом окне, нажмите [Enter] для продолжения..."
