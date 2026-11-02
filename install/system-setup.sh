@@ -901,30 +901,67 @@ EOF
     fi
 
     SSHD_CONFIG_FILE="/etc/ssh/sshd_config"
+    SSHD_CONFIG_DIR="/etc/ssh/sshd_config.d"
+
+    mkdir -p "$SSHD_CONFIG_DIR"
+
+    echo ""
+    echo "Оптимизация конфигурации SSH..."
+
+    echo ""
+    echo "Обработка параметра PermitRootLogin..."
+
+    if grep -Eq "^[[:space:]]*#[[:space:]]*PermitRootLogin[[:space:]]+prohibit-password" "$SSHD_CONFIG_FILE"; then
+        echo "Параметр PermitRootLogin уже обработан!"
+    elif grep -Eq "^[[:space:]]*#?[[:space:]]*PermitRootLogin" "$SSHD_CONFIG_FILE"; then
+        sed -i -E 's/^[[:space:]]*#?[[:space:]]*PermitRootLogin.*/#PermitRootLogin prohibit-password/' "$SSHD_CONFIG_FILE"
+    else
+        echo "#PermitRootLogin prohibit-password" >> "$SSHD_CONFIG_FILE"
+    fi
+
+    echo ""
+    echo "Обработка параметра PrintLastLog..."
+
+    if grep -Eq "^[[:space:]]*#[[:space:]]*PrintLastLog[[:space:]]+yes" "$SSHD_CONFIG_FILE"; then
+        echo "Параметр PrintLastLog уже обработан!"
+    elif grep -Eq "^[[:space:]]*#?[[:space:]]*PrintLastLog" "$SSHD_CONFIG_FILE"; then
+        sed -i -E 's/^[[:space:]]*#?[[:space:]]*PrintLastLog.*/#PrintLastLog yes/' "$SSHD_CONFIG_FILE"
+    else
+        echo "#PrintLastLog yes" >> "$SSHD_CONFIG_FILE"
+    fi
+
+    echo ""
+    echo "Обработка параметра Banner..."
+
+    if grep -Eq "^[[:space:]]*#[[:space:]]*Banner[[:space:]]+none" "$SSHD_CONFIG_FILE"; then
+        echo "Параметр Banner уже обработан!"
+    elif grep -Eq "^[[:space:]]*#?[[:space:]]*Banner" "$SSHD_CONFIG_FILE"; then
+        sed -i -E 's/^[[:space:]]*#?[[:space:]]*Banner.*/#Banner none/' "$SSHD_CONFIG_FILE"
+    else
+        echo "#Banner none" >> "$SSHD_CONFIG_FILE"
+    fi
 
     echo ""
     echo "Отключение входа для root через SSH..."
 
-    if grep -Eq "^[[:space:]]*PermitRootLogin[[:space:]]+no" "$SSHD_CONFIG_FILE"; then
+    SSHD_CONFIG_SECURITY_FILE="99-security.conf"
+
+    if grep -Eq "^[[:space:]]*PermitRootLogin[[:space:]]+no" "$SSHD_CONFIG_DIR/$SSHD_CONFIG_SECURITY_FILE" 2>/dev/null; then
         echo "Вход для root через SSH уже отключен!"
-    elif grep -Eq "^[[:space:]]*#?[[:space:]]*PermitRootLogin" "$SSHD_CONFIG_FILE"; then
-        sed -i -E 's/^[[:space:]]*#?[[:space:]]*PermitRootLogin.*/PermitRootLogin no/' "$SSHD_CONFIG_FILE"
     else
-        echo "PermitRootLogin no" >> "$SSHD_CONFIG_FILE"
+        echo "PermitRootLogin no" | tee "$SSHD_CONFIG_DIR/$SSHD_CONFIG_SECURITY_FILE" >/dev/null
     fi
 
     echo ""
     echo "Отключение вывода информации о последнем входе в баннере SSH..."
 
-    SSHD_CONFIG_DIR="/etc/ssh/sshd_config.d"
     SSHD_CONFIG_LASTLOG_FILE="00-disable-lastlog.conf"
+    UNAUTH_SSH_BANNER="/etc/issue.net"
 
-    mkdir -p "$SSHD_CONFIG_DIR"
-
-    if grep -E -riq "^[[:space:]]*PrintLastLog[[:space:]]+no" "$SSHD_CONFIG_FILE" "$SSHD_CONFIG_DIR/" 2>/dev/null; then
-        echo "Вывод информации о последнем входе в баннере SSH уже отключено!"
+    if grep -Eq "^[[:space:]]*PrintLastLog[[:space:]]+no" "$SSHD_CONFIG_DIR/$SSHD_CONFIG_LASTLOG_FILE" 2>/dev/null; then
+        echo "Вывод информации о последнем входе в баннере SSH уже отключен!"
     else
-        echo "PrintLastLog no" | tee "$SSHD_CONFIG_DIR/$SSHD_CONFIG_LASTLOG_FILE" >/dev/null
+        echo -e "PrintLastLog no\nBanner $UNAUTH_SSH_BANNER" | tee "$SSHD_CONFIG_DIR/$SSHD_CONFIG_LASTLOG_FILE" >/dev/null
     fi
 
     echo "Отключение вывода справочных ссылок о системе Ubuntu в баннере SSH..."
@@ -941,7 +978,6 @@ EOF
 
     echo "Настройка баннера на этапе ввода логина интерфейса SSH..."
 
-    UNAUTH_SSH_BANNER="/etc/issue.net"
     UNAUTH_SSH_GREETING="Welcome to Amlogic Ubuntu Server"
 
     if grep -q "$UNAUTH_SSH_GREETING" "$UNAUTH_SSH_BANNER" 2>/dev/null; then
